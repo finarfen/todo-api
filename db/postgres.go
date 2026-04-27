@@ -4,12 +4,22 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 
 	_ "github.com/lib/pq"
 )
 
 func Connect() *sql.DB {
-	connStr := "host=localhost port=5432 user=postgres password=postgres dbname=todos sslmode=disable"
+	host := getEnv("DB_HOST", "localhost")
+	port := getEnv("DB_PORT", "5432")
+	user := getEnv("DB_USER", "postgres")
+	password := getEnv("DB_PASSWORD", "postgres")
+	dbname := getEnv("DB_NAME", "todos")
+
+	connStr := fmt.Sprintf(
+		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname,
+	)
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -23,4 +33,12 @@ func Connect() *sql.DB {
 
 	fmt.Println("Подключено к PostrgeSQL!")
 	return db
+}
+
+func getEnv(key, defaultValue string) string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return value
 }
