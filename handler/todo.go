@@ -3,19 +3,23 @@ package handler
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+
 	"todo-api/model"
+	"todo-api/queue"
 
 	"github.com/gorilla/mux"
 )
 
 type TodoHandler struct {
 	DB *sql.DB
+	MQ *queue.RabbitMQ
 }
 
-func NewTodoHandler(db *sql.DB) *TodoHandler {
-	return &TodoHandler{DB: db}
+func NewTodoHandler(db *sql.DB, mq *queue.RabbitMQ) *TodoHandler {
+	return &TodoHandler{DB: db, MQ: mq}
 }
 
 func (h *TodoHandler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +49,11 @@ func (h *TodoHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	if h.MQ != nil {
+		msg := fmt.Sprintf("Created a new task: %s", t.Title)
+		h.MQ.Publish("notifications", msg)
 	}
 
 	w.Header().Set("Content-Type", "applicationjson")
