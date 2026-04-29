@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"todo-api/db"
 	"todo-api/handler"
+	"todo-api/queue"
 
 	"github.com/gorilla/mux"
 )
@@ -12,6 +13,9 @@ import (
 func main() {
 	database := db.Connect()
 	defer database.Close()
+
+	mq := queue.NewRabbitMQ()
+	defer mq.Close()
 
 	_, err := database.Exec(`
 		CREATE TABLE IF NOT EXISTS todos (
@@ -24,7 +28,7 @@ func main() {
 		log.Fatal("Ошибка создания таблицы:", err)
 	}
 
-	h := handler.NewTodoHandler(database)
+	h := handler.NewTodoHandler(database, mq)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/todos", h.GetAll).Methods("GET")
